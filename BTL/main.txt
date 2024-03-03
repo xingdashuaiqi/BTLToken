@@ -1,0 +1,85 @@
+package main
+
+import (
+	"NFT1218Admin/global"
+	"NFT1218Admin/util"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"log"
+)
+
+const (
+	ApiKey               = "FMNAVZAI6WZYIYE3M1WMP2UZXT9XRQZHTZ" // 替换为你的BscScan API密钥
+	BscScanAPIBaseURL    = "https://api.bscscan.com/api"
+	Grpc                 = "https://bsc-dataseed.bnbchain.org"
+	TokenContractAddress = "0xfcf7cF5aD001dAc41eAa88cE8F38e78C76A1De23"
+	LpContractAddress    = "0x3cCF782F4DB1363181729F23318C42e33b195DE2"
+	PancakeRouterAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+	LpAddress            = "0x872eCfF6F0C01f5A73EaAFd69a34Aab583a00Ef8"
+	//NFTContractAddress   = "0xEe3E55aB6dce0854810d6D3DaE54D5e349Cf3b9f"
+	NFTAddress = "0xBe7906FB9346755Db2Fa5ACddF9808e18a5B6858"
+
+	USDTContractAddress = "0x55d398326f99059fF775485246999027B3197955"
+)
+
+func init() {
+	err := global.ConnectToEthereumNode(Grpc)
+	if err != nil {
+		log.Fatalf("连接节点失败 err:%v", err)
+	}
+	log.Println("连接节点成功")
+
+	PancakeContractAddress := common.HexToAddress(LpContractAddress) // 替换为您的合约地址
+	err = global.LoadLPContract(PancakeContractAddress)
+	if err != nil {
+		log.Fatalf("加载LP合约失败失败 err:%v", err)
+	}
+	log.Println("加载LP合约成功")
+
+	BTLContractAddress := common.HexToAddress(TokenContractAddress) // 替换为您的合约地址
+	err = global.LoadBTLContract(BTLContractAddress)
+	if err != nil {
+		log.Fatalf("加载BTL合约失败失败 err:%v", err)
+	}
+	log.Println("加载BTL合约成功")
+
+	//NFTContractAddress1 := common.HexToAddress(NFTContractAddress) // 替换为您的合约地址
+	//err = global.LoadNFTContract(NFTContractAddress1)
+	//if err != nil {
+	//	log.Fatalf("加载NFT合约失败失败 err:%v", err)
+	//}
+	//log.Println("加载NFT合约成功")
+
+	PancakeRouterAddress1 := common.HexToAddress(PancakeRouterAddress) // 替换为您的合约地址
+	err = global.LoadPancakeRouterContract(PancakeRouterAddress1)
+	if err != nil {
+		log.Fatalf("加载pancake路由合约失败失败 err:%v", err)
+	}
+	log.Println("加载pancake路由合约成功")
+
+	USDTContractAddress1 := common.HexToAddress(USDTContractAddress) // 替换为您的合约地址
+	err = global.LoadUSDTContract(USDTContractAddress1)
+	if err != nil {
+		log.Fatalf("加载USDTContract失败 err:%v", err)
+	}
+	log.Println("加载USDTContract合约成功")
+}
+
+func main() {
+	r := gin.Default()
+	r.Use(cors.Default())
+
+	// 定义一个路由，处理GET请求
+	r.GET("/", func(c *gin.Context) {
+		admin := util.GetBalanceBTL(TokenContractAddress, USDTContractAddress, LpContractAddress, LpAddress, NFTAddress)
+		LpHolder := util.GetLPHolders(TokenContractAddress, BscScanAPIBaseURL, ApiKey)
+		admin.LpCount = len(LpHolder)
+		c.JSON(200, gin.H{
+			"message": admin,
+		})
+	})
+
+	// 启动Gin服务，默认监听在 :8080 端口
+	r.Run(":9090")
+}
